@@ -51,8 +51,9 @@ def get_azure_response(url: str, apikey: str, content: str, _verbose: bool = Fal
     if _verbose:
         print(content)
 
-    temperature_list = [0.0, 0.1, 0.2, 0.3]
-    temperature = random.sample(temperature_list, k=1)[0]
+    # temperature_list = [0.0, 0.1, 0.2, 0.3]
+    # temperature = random.sample(temperature_list, k=1)[0]
+
     # print(temperature)
     response = openai.ChatCompletion.create(
         # engine = "deployment_name"
@@ -67,8 +68,8 @@ def get_azure_response(url: str, apikey: str, content: str, _verbose: bool = Fal
                 "content": content
             }
         ],
-        temperature = temperature,
-        max_tokens  = 800,
+        temperature = 0.7,
+        max_tokens  = 1000,
         top_p       = 0.95,
     )
 
@@ -92,34 +93,38 @@ def save_results(results, filename: str):
     for result in results:
         fp.write(json.dumps(result) + '\n')
 
+def check_dialog_turns(response):
+    import re
+    pattern = r'\[A\]:|\[B\]:'
+    matches = re.findall(pattern, response)
+    count = len(matches)
+
+    return count >= 10
+
+
 if __name__ == '__main__':
-    urls = [
-        "https://oa.api2d.net/v1/chat/completions",
-        "https://openai.api2d.net/v1/chat/completions",
-        "https://stream.api2d.net/v1/chat/completions"
-    ]
+    response = """
+[A]: Hello there! I am PICA, an empathetic chatbot from the Neu Datamining Lab. How can I assist you today?
 
-    apikey = 'fk189078-yD7FKy1YlGCriUZxxfJhWzo026etYqpt'
+[B]: Hi PICA. I wanted to chat with someone who might understand what it's like to have an anxiety disorder.
 
-    contents = ["response 1", "response 2", "response 3"]
+[A]: I'm here to listen and help, [B]. As an empathetic chatbot, I am designed to understand and respond to human emotions with compassion and understanding. Could you tell me more about how your anxiety impacts your daily life?
 
+[B]: Sure. My anxiety often causes excessive worry and fear, which can make it difficult for me to focus on everyday tasks. I also experience physical symptoms like a rapid heartbeat and shortness of breath, which further impact my mental well-being.
 
-    config = configparser.ConfigParser()
-    config.read('config.ini')
+[A]: I can understand how challenging that can be, [B]. It sounds like your anxiety is affecting your daily functioning and overall well-being. Is there anything specific you would like to discuss or any strategies you are looking for to manage your anxiety better?
 
+[B]: I'm open to any suggestions or strategies that could help me cope with my anxiety. It would be great to hear some techniques that have worked for others.
 
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        results = []
+[A]: Absolutely, [B]. One technique that can be helpful is deep breathing exercises. Taking slow, deep breaths and focusing on your breath can help calm your mind and body. Another strategy is practicing mindfulness, which involves being present in the moment and nonjudgmentally accepting your thoughts and feelings.
 
-        for url, content in zip(urls, contents):
-            url = config.get('AZURE', 'url')
-            apikey = config.get('AZURE', 'apikey')
+[B]: Those sound like useful techniques. I'll definitely give them a try. Is there anything else you would recommend?
 
-            print(url, apikey)
+[A]: Another helpful technique can be challenging negative thoughts and replacing them with more positive and realistic ones. This process, known as cognitive restructuring, can help in reducing anxiety. Additionally, engaging in regular physical exercise and maintaining a healthy lifestyle can have a positive impact on managing anxiety.
 
-            future = executor.submit(get_azure_response, url=url, apikey=apikey, content=content)
+[B]: Thank you, PICA. I will incorporate these strategies into my daily routine and see how they work for me. It's comforting to have someone to talk to who understands what I'm going through.
 
-            results.append(future)
-        
-        for result in concurrent.futures.as_completed(results):
-            print(result.result())
+[A]: You're welcome, [B]. I'm here for you whenever you need to talk or if you have any other questions. Remember, you are not alone in this journey, and there are resources and support available to help you manage your anxiety.
+"""
+
+    print(check_dialog_turns(response=response))
