@@ -107,16 +107,22 @@ if __name__ == '__main__':
     result_path = os.path.join('data', 'machine_generate_dialog.json')
 
     fp = open(result_path, 'a')
-    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
-        for data in tqdm(datas):
-            content = data['template']
-            
-            future = executor.submit(
+    with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
+        futures = [
+            executor.submit(
                 run,
-                content
-            )
+                data['template']
+            ) for data in datas
+        ]
 
-            data['response'] = future.result()
-            
-            fp.write(json.dumps(data) + '\n')
+        with tqdm(total=len(futures)) as pbar:
+            for future, data in zip(concurrent.futures.as_completed(futures), datas):
+                try:
+                    data['response'] = future.result()
+                    fp.write(json.dumps(data) + '\n') 
+                    pbar.update(1)
+                except Exception as e:
+                    print(e)
+                    pbar.update(1)
+
     

@@ -27,7 +27,7 @@ filter_datas = []
 
 for data in tqdm(machine_data):
     text = data['persona'] + data['situation']
-    with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=16) as executor:
         futures = [
             executor.submit(
                 compute_rouge,
