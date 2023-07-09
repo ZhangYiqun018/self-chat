@@ -7,39 +7,20 @@ import concurrent.futures
 import configparser
 import re
 
-
-template = """The conversation between [A] and [B]. [A] and [B] comply with the following control information. According to the control information, {flag} initiates the conversation.
-
-## [A] persona:
-{ai_persona}
-
-## [B] persona:
-{user_persona}
-
-## [B] situation:
-{user_situation}
-
-## conversation:
-"""
-
-def init_data():
+def init_data(seeds_path: str, machine_path: str):
     machine_data = load_dataset(
         'json',
-        data_files = os.path.join('data', 'machine_generate.json'),
+        data_files = os.path.join('data', seeds_path),
         split      = 'train'
     )
 
     mental_health_data = load_dataset(
         'json',
-        data_files = os.path.join('data', 'mental_health_persona.json'),
+        data_files = os.path.join('data', machine_path),
         split      = 'train'
     )
 
     dataset = concatenate_datasets([machine_data, mental_health_data])
-
-    ai_persona = "I am PICA, the empathetic chatbot from the Neu Datamining Lab. With advanced algorithms, I am designed to understand and respond to human emotions with compassion and understanding."
-
-    flags = ["[A]", "[B]"]
 
     templates = []
 
@@ -69,10 +50,10 @@ def post_process(response):
     return response
 
 def check_dialog_turns(response):
-    pattern = r'\[A\]:|\[B\]:'
+    pattern = r'\[A\]:|\[B\]:|\<A\>:|\<B\>:'
     matches = re.findall(pattern, response)
     count = len(matches)
-
+    print(count)
     return count >= 10
 
 def run(content):
@@ -92,9 +73,20 @@ if __name__ == '__main__':
     url    = config.get('AZURE', 'url')
     apikey = config.get('AZURE', 'apikey')
 
-    data_path = os.path.join('data', 'dialog_init_data.json')
+
+    template_path = os.path.join('templates', 'dialog_prompt.json')
+    with open(template_path, 'r') as r:
+        template = json.load(fp=r)['prompt_zh']
+        ai_persona = json.load(fp=r)['ai_persona_zh']
+
+    flags = ["<A>", "<B>"]
+
+    data_path = os.path.join('data', 'dialog_init_data_zh.json')
     if not os.path.exists(data_path):
-        init_data()
+        init_data(
+            seeds_path='machinehealth_seeds_zh.json',
+            machine_path='machine_generate_mentalhealth_zh.json'
+        )
 
     datas = load_dataset(
         'json',
@@ -104,7 +96,7 @@ if __name__ == '__main__':
     
     print(datas)
 
-    result_path = os.path.join('data', 'machine_generate_dialog.json')
+    result_path = os.path.join('data', 'machine_generate_dialog_zh.json')
 
     fp = open(result_path, 'a')
     with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:

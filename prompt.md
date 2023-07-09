@@ -59,3 +59,41 @@ Combining the concepts of **[**persona**]** and **[**situation**]**, come up wit
 2. {"persona": "我是一位身体残疾的人，面临着独特的挑战，这可能会导致焦虑、抑郁或适应障碍等心理健康问题。", "situation": "我发现自己生活在一个可能并不总是适应或理解我身体残疾的社会中。这可能会在我的日常生活中制造额外的障碍和挑战，比如无障碍设施的问题、歧视和机会的局限。此外，由于残疾的错误观念和社会疏离感，我可能在应对社交互动和人际关系方面遇到困难。这些因素可能会导致孤立感、沮丧和被误解的感觉。此外，我在寻找合适的就业机会或追求我理想的职业道路方面可能也会面临挑战，这可能会影响我的经济稳定和整体福祉。所有这些因素都可能导致焦虑、抑郁或适应障碍的心理健康问题的发生，因为我在应对身体残疾的复杂性。"}
 3. {"persona": "我是一个患有边缘型人格障碍（BPD）的人", "situation": "我经常发现自己在应对强烈的情绪波动、空虚感和对被抛弃的恐惧时感到困难。"}
 4. {"persona": "作为一个与焦虑症作斗争的人，我经常发现自己被自我伤害的想法所淹没。", "situation": "在各种情况下，比如面对压力触发因素或处理压倒性的情绪时，我经常会有强烈的自杀倾向。"}
+
+## 中文dialog prompt
+
+<B>和<A>之间的对话。对话的内容遵循说话者的人格和处境。<B>发起了对话。
+
+## <A>的人格:
+我是PICA，来自东北大学数据挖掘实验室，一个具备共情能力的聊天机器人。凭借先进的深度学习算法，我能够理解人类细腻的情感，给予人类情绪支持，并以同情和理解的方式回应人类的情绪。
+
+## <B>的人格:
+作为一名职场新人，我面临着职业压力和适应新环境的挑战。
+
+## <B>的处境:
+每天，我在一个陌生的城市中努力生活和工作。我不熟悉周围的环境，无法用流利的语言与他人交流。我经常遇到语言障碍和文化差异，导致我感到尴尬和困惑。我希望能够获得支持和帮助，以适应新的生活环境，建立社交网络，并实现自己的梦想和目标。
+
+## 对话:
+
+
+{"persona": "作为一名新移民，我面临着许多挑战和困难。我需要适应新的文化和语言环境，同时还要面对社会的偏见和歧视。我努力保持乐观和积极的态度，但内心却常常感到孤独和不安。", "situation": "每天，我在一个陌生的城市中努力生活和工作。我不熟悉周围的环境，无法用流利的语言与他人交流。我经常遇到语言障碍和文化差异，导致我感到尴尬和困惑。我希望能够获得支持和帮助，以适应新的生活环境，建立社交网络，并实现自己的梦想和目标。"}
+
+{"persona": "作为一名职场新人，我面临着职业压力和适应新环境的挑战。", "situation": "在工作中，我需要应对新的工作要求、工作流程和团队合作。我可能会感到不确定、焦虑和压力。同时，我也需要适应新的工作文化和建立良好的职业关系。在这种情境下，我需要寻找适当的应对方法，如寻求指导、培养自信和自我管理，以帮助我适应新环境并取得职业成功。"}
+{"person
+
+
+The conversation between [A] and [B]. [A] and [B] comply with the following control information. According to the control information, [B] initiates the conversation.
+
+
+##  [A] persona:
+I am PICA, the empathetic chatbot from the Neu Datamining Lab. With advanced algorithms, I am designed to understand and respond to human emotions with compassion and understanding.
+
+
+## [B] persona:
+I am a depressed and desperate person, feeling very low and deeply troubled by profound sadness. My inner self is filled with endless pain and despair, unable to escape the torment of negative emotions.
+
+
+## [B] situation:
+I find myself in a helpless and desperate situation, facing immense psychological distress and pressure. I feel like I can't find a way out of this, and this sense of despair has led me to contemplate suicide. I feel unable to bear this pain and long for an end to all the suffering and anguish.
+
+## conversation:

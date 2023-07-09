@@ -42,7 +42,7 @@ def get_api2d_response(url: str, apikey: str, content: str):
         wait=tenacity.wait_exponential(multiplier=1, min=4, max=200),
         stop=tenacity.stop_after_attempt(2),
         reraise=True)
-def get_azure_response(url: str, apikey: str, content: str, _verbose: bool = False):
+def get_azure_response(url: str, apikey: str, content: str, _verbose: bool = False, temperature: float=0.7):
     openai.api_type    = "azure"
     openai.api_base    = url
     openai.api_version = "2023-03-15-preview"
@@ -68,7 +68,7 @@ def get_azure_response(url: str, apikey: str, content: str, _verbose: bool = Fal
                 "content": content
             }
         ],
-        temperature = 0.7,
+        temperature = temperature,
         max_tokens  = 1000,
         top_p       = 0.95,
     )
