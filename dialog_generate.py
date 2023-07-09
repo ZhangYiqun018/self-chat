@@ -1,45 +1,28 @@
-from utils import get_azure_response
-from datasets import load_dataset, concatenate_datasets
-import os
-from tqdm.auto import tqdm
-import json
 import concurrent.futures
 import configparser
+import json
+import os
 import re
 
+from datasets import concatenate_datasets, load_dataset
+from tqdm.auto import tqdm
 
-template = """The conversation between [A] and [B]. [A] and [B] comply with the following control information. According to the control information, {flag} initiates the conversation.
+from utils import get_azure_response
 
-## [A] persona:
-{ai_persona}
-
-## [B] persona:
-{user_persona}
-
-## [B] situation:
-{user_situation}
-
-## conversation:
-"""
-
-def init_data():
+def init_data(seeds_path: str, machine_path: str):
     machine_data = load_dataset(
         'json',
-        data_files = os.path.join('data', 'machine_generate.json'),
+        data_files = os.path.join('data', seeds_path),
         split      = 'train'
     )
 
     mental_health_data = load_dataset(
         'json',
-        data_files = os.path.join('data', 'mental_health_persona.json'),
+        data_files = os.path.join('data', machine_path),
         split      = 'train'
     )
 
     dataset = concatenate_datasets([machine_data, mental_health_data])
-
-    ai_persona = "I am PICA, the empathetic chatbot from the Neu Datamining Lab. With advanced algorithms, I am designed to understand and respond to human emotions with compassion and understanding."
-
-    flags = ["[A]", "[B]"]
 
     templates = []
 
@@ -63,26 +46,38 @@ def init_data():
                 'user_situation': data['situation']
             }
 
-            fp.write(json.dumps(temp) + '\n')
+            fp.write(json.dumps(temp, ensure_ascii=False) + '\n')
 
 def post_process(response):
     return response
 
 def check_dialog_turns(response):
-    pattern = r'\[A\]:|\[B\]:'
-    matches = re.findall(pattern, response)
-    count = len(matches)
+    pattern_A = r'\[A\]:|\<A\>:|A:|A：|\<A\>：'
+    matches_A = re.findall(pattern_A, response)
+    count_A = len(matches_A)
 
-    return count >= 10
+    pattern_B = r'\[B\]:|\<B\>:\<B\>：|\<A\>：'
+    matches_B = re.findall(pattern_B, response)
+    count_B = len(matches_B)
+
+    if abs(count_A - count_B) >= 2:
+        return -1
+    
+    count = count_A + count_B
+
+    return count
 
 def run(content):
     while True:
-        response = get_azure_response(url, apikey, content)
+        response = get_azure_response(url, apikey, content=content, temperature=0.1)
         
-        if check_dialog_turns(response):
-            break
+        count = check_dialog_turns(response)
 
-        response = post_process(response)
+        if count >= 8:
+            response = post_process(response)
+            break
+        else:
+            continue
 
     return response
 
@@ -92,9 +87,29 @@ if __name__ == '__main__':
     url    = config.get('AZURE', 'url')
     apikey = config.get('AZURE', 'apikey')
 
-    data_path = os.path.join('data', 'dialog_init_data.json')
+    seeds_path    = 'mentalhealth_seeds_zh.json'
+    machine_path  = 'machine_generate_mentalhealth_zh.json'
+    template_path = os.path.join('templates', 'dialog_prompt.json')
+    data_path     = os.path.join('data', 'dialog_init_data_zh.json')
+    result_path   = os.path.join('data', 'machine_generate_dialog_zh.json')
+
+    if 'zh' in result_path:
+        flags = ["<A>", "<B>"]
+    else:
+        flags = ["[A]", "[B]"]
+
+    with open(template_path, 'r') as r:
+        template_data = json.load(fp=r)
+        print(template_data)
+        template   = template_data['prompt_zh']
+        ai_persona = template_data['ai_persona_zh']
+
+    
     if not os.path.exists(data_path):
-        init_data()
+        init_data(
+            seeds_path   = seeds_path,
+            machine_path = machine_path
+        )
 
     datas = load_dataset(
         'json',
@@ -103,8 +118,6 @@ if __name__ == '__main__':
     )
     
     print(datas)
-
-    result_path = os.path.join('data', 'machine_generate_dialog.json')
 
     fp = open(result_path, 'a')
     with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
@@ -119,10 +132,8 @@ if __name__ == '__main__':
             for future, data in zip(concurrent.futures.as_completed(futures), datas):
                 try:
                     data['response'] = future.result()
-                    fp.write(json.dumps(data) + '\n') 
+                    fp.write(json.dumps(data, ensure_ascii=False) + '\n') 
                     pbar.update(1)
                 except Exception as e:
                     print(e)
                     pbar.update(1)
-
-    

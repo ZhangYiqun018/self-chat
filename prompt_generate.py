@@ -9,13 +9,7 @@ from typing import List, Optional
 from datasets import Dataset, concatenate_datasets, load_dataset
 from tqdm.auto import tqdm
 
-from utils import get_azure_response
-
-template="""[persona]: The persona is the role or image that an individual presents in a social context based on societal expectations and self-construction.
-[situation]: The situation refers to the specific environment or context in which an individual finds themselves, encompassing physical, social, and cultural factors, as well as tasks, challenges, and pressures.
-Combining the concepts of [persona] and [situation], come up with a series of diversified personas and situation:
-{prompt}
-"""
+from utils import get_azure_response, compute_rouge
 
 def make_template(
     template: str,
@@ -25,9 +19,12 @@ def make_template(
     num_machine: int,
 ) -> str:
     origin = random.sample(origin, k=num_seed)
-    machine = random.sample(machine, k=num_machine)
+    if len(machine) > 0:
+        machine = random.sample(machine, k=num_machine)
+        datas = origin + machine
+    else:
+        datas = origin
 
-    datas = origin + machine
     prompt = ""
     for idx, data in enumerate(datas):
         prompt += f"{str(idx+1)}. {data}\n"
@@ -37,10 +34,10 @@ def make_template(
     return template.format(prompt=prompt)
 
 def save_results(results: List[str]):
-    path = os.path.join('data', 'machine_generate.json')
-    fp = open(path, 'a')
+    path = os.path.join('data', machine_generate_path)
+    fp = open(path, 'a', encoding='utf8')
     for result in results:
-        fp.write(json.dumps(result) + '\n')
+        fp.write(json.dumps(result, ensure_ascii=False) + '\n')
 
 def find_word_in_string(w, s):
     return re.compile(r'\b({0})\b'.format(w), flags=re.IGNORECASE).search(s)
@@ -72,7 +69,20 @@ def post_process(text):
                 'persona': persona,
                 'situation': situation
             }
-        except:
+
+            # compute rouge
+            with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
+                results = list(executor.map(
+                    compute_rouge,
+                    [text['persona'] + text['situation']] * len(origin + machine),
+                    [label['persona'] + text['situation'] for label in origin + machine]
+                ))
+                
+                if any(result > 0.5 for result in results):
+                    continue
+
+        except Exception as e:
+            print(e)
             continue
 
         texts.append(text)
@@ -90,20 +100,32 @@ def process_dataset(dataset: Dataset) -> List:
 
     return results
 
+
 if __name__ == '__main__':
+    # load api
     config = configparser.ConfigParser()
     config.read('config.ini')
     url    = config.get('AZURE', 'url')
     apikey = config.get('AZURE', 'apikey')
 
+    # load template
+    template_name = 'mental_health_prompt_zh.json'
+    template_path = os.path.join('templates', template_name)
+    with open(template_path, 'r') as r:
+        template = json.load(fp=r)['prompt']
+    
+    # load data
+    origin_path = 'mentalhealth_seeds_zh.json'
+    machine_generate_path = 'machine_generate_mentalhealth_zh.json'
+
     dataset = load_dataset(
         'json',
-        data_files = os.path.join('data', 'mentalhealth_seeds_zh.json'),
+        data_files = os.path.join('data', origin_path),
         split      = 'train'
     )
     origin = process_dataset(dataset=dataset)
 
-    machine_dataset_path = os.path.join('data', 'machine_generate_mentalhealth_zh.json')
+    machine_dataset_path = os.path.join('data', machine_generate_path)
     if os.path.exists(machine_dataset_path):
         machine_dataset = load_dataset(
             'json',
@@ -114,7 +136,7 @@ if __name__ == '__main__':
     else:
         machine = []
 
-    num_seed = 3
+    num_seed = 4
     num_machine = 1
 
     num_generate = 1000
@@ -131,9 +153,11 @@ if __name__ == '__main__':
                 num_machine = num_machine
             )
             responses = get_azure_response(
-                url     = url,
-                apikey  = apikey,
-                content = content
+                url         = url,
+                apikey      = apikey,
+                content     = content,
+                _verbose    = False,
+                temperature = 0.1,
             )
 
             responses = post_process(responses)
