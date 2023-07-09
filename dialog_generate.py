@@ -9,7 +9,6 @@ from tqdm.auto import tqdm
 
 from utils import get_azure_response
 
-
 def init_data(seeds_path: str, machine_path: str):
     machine_data = load_dataset(
         'json',
@@ -47,26 +46,38 @@ def init_data(seeds_path: str, machine_path: str):
                 'user_situation': data['situation']
             }
 
-            fp.write(json.dumps(temp) + '\n')
+            fp.write(json.dumps(temp, ensure_ascii=False) + '\n')
 
 def post_process(response):
     return response
 
 def check_dialog_turns(response):
-    pattern = r'\[A\]:|\[B\]:|\<A\>:|\<B\>:'
-    matches = re.findall(pattern, response)
-    count = len(matches)
-    print(count)
-    return count >= 10
+    pattern_A = r'\[A\]:|\<A\>:|A:|A：|\<A\>：'
+    matches_A = re.findall(pattern_A, response)
+    count_A = len(matches_A)
+
+    pattern_B = r'\[B\]:|\<B\>:\<B\>：|\<A\>：'
+    matches_B = re.findall(pattern_B, response)
+    count_B = len(matches_B)
+
+    if abs(count_A - count_B) >= 2:
+        return -1
+    
+    count = count_A + count_B
+
+    return count
 
 def run(content):
     while True:
-        response = get_azure_response(url, apikey, content)
+        response = get_azure_response(url, apikey, content=content, temperature=0.1)
         
-        if check_dialog_turns(response):
-            break
+        count = check_dialog_turns(response)
 
-        response = post_process(response)
+        if count >= 8:
+            response = post_process(response)
+            break
+        else:
+            continue
 
     return response
 
@@ -76,20 +87,22 @@ if __name__ == '__main__':
     url    = config.get('AZURE', 'url')
     apikey = config.get('AZURE', 'apikey')
 
-
+    seeds_path    = 'mentalhealth_seeds_zh.json'
+    machine_path  = 'machine_generate_mentalhealth_zh.json'
     template_path = os.path.join('templates', 'dialog_prompt.json')
-    data_path = os.path.join('data', 'dialog_init_data_zh.json')
-    seeds_path = 'machinehealth_seeds_zh.json'
-    machine_path = 'machine_generate_mentalhealth_zh.json'
-    result_path = os.path.join('data', 'machine_generate_dialog_zh.json')
+    data_path     = os.path.join('data', 'dialog_init_data_zh.json')
+    result_path   = os.path.join('data', 'machine_generate_dialog_zh.json')
+
     if 'zh' in result_path:
         flags = ["<A>", "<B>"]
     else:
         flags = ["[A]", "[B]"]
 
     with open(template_path, 'r') as r:
-        template   = json.load(fp=r)['prompt_zh']
-        ai_persona = json.load(fp=r)['ai_persona_zh']
+        template_data = json.load(fp=r)
+        print(template_data)
+        template   = template_data['prompt_zh']
+        ai_persona = template_data['ai_persona_zh']
 
     
     if not os.path.exists(data_path):
@@ -119,10 +132,8 @@ if __name__ == '__main__':
             for future, data in zip(concurrent.futures.as_completed(futures), datas):
                 try:
                     data['response'] = future.result()
-                    fp.write(json.dumps(data) + '\n') 
+                    fp.write(json.dumps(data, ensure_ascii=False) + '\n') 
                     pbar.update(1)
                 except Exception as e:
                     print(e)
                     pbar.update(1)
-
-    
