@@ -1,11 +1,14 @@
-from utils import get_azure_response
-from datasets import load_dataset, concatenate_datasets
-import os
-from tqdm.auto import tqdm
-import json
 import concurrent.futures
 import configparser
+import json
+import os
 import re
+
+from datasets import concatenate_datasets, load_dataset
+from tqdm.auto import tqdm
+
+from utils import get_azure_response
+
 
 def init_data(seeds_path: str, machine_path: str):
     machine_data = load_dataset(
@@ -75,17 +78,24 @@ if __name__ == '__main__':
 
 
     template_path = os.path.join('templates', 'dialog_prompt.json')
+    data_path = os.path.join('data', 'dialog_init_data_zh.json')
+    seeds_path = 'machinehealth_seeds_zh.json'
+    machine_path = 'machine_generate_mentalhealth_zh.json'
+    result_path = os.path.join('data', 'machine_generate_dialog_zh.json')
+    if 'zh' in result_path:
+        flags = ["<A>", "<B>"]
+    else:
+        flags = ["[A]", "[B]"]
+
     with open(template_path, 'r') as r:
-        template = json.load(fp=r)['prompt_zh']
+        template   = json.load(fp=r)['prompt_zh']
         ai_persona = json.load(fp=r)['ai_persona_zh']
 
-    flags = ["<A>", "<B>"]
-
-    data_path = os.path.join('data', 'dialog_init_data_zh.json')
+    
     if not os.path.exists(data_path):
         init_data(
-            seeds_path='machinehealth_seeds_zh.json',
-            machine_path='machine_generate_mentalhealth_zh.json'
+            seeds_path   = seeds_path,
+            machine_path = machine_path
         )
 
     datas = load_dataset(
@@ -95,8 +105,6 @@ if __name__ == '__main__':
     )
     
     print(datas)
-
-    result_path = os.path.join('data', 'machine_generate_dialog_zh.json')
 
     fp = open(result_path, 'a')
     with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
