@@ -55,7 +55,7 @@ def post_process(text):
         if text == "":
             continue
 
-        if any(find_word_in_string(word, text) for word in ["i'm sorry", "i am sorry", "I am sorry", "I'm sorry"]):
+        if any(find_word_in_string(word, text) for word in ["i'm sorry", "i am sorry", "I am sorry", "I'm sorry", "我很抱歉", "AI"]):
             continue
         
         try:
@@ -98,26 +98,26 @@ if __name__ == '__main__':
 
     dataset = load_dataset(
         'json',
-        data_files = os.path.join('data', 'data_seeds.json'),
+        data_files = os.path.join('data', 'mentalhealth_seeds_zh.json'),
         split      = 'train'
     )
     origin = process_dataset(dataset=dataset)
 
-    machine_dataset_path = os.path.join('data', 'machine_generate.json')
+    machine_dataset_path = os.path.join('data', 'machine_generate_mentalhealth_zh.json')
     if os.path.exists(machine_dataset_path):
         machine_dataset = load_dataset(
             'json',
-            data_files=machine_dataset_path,
-            split='train'
+            data_files = machine_dataset_path,
+            split      = 'train'
         )
         machine = process_dataset(machine_dataset)
     else:
         machine = []
 
-    num_seed = 1
-    num_machine = 2
+    num_seed = 3
+    num_machine = 1
 
-    num_generate = 20000
+    num_generate = 1000
 
     results = []
 
