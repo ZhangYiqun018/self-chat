@@ -31,7 +31,6 @@ def init_data(seeds_path: str, machine_path: str):
     for data in tqdm(dataset):
         for flag in flags:
             template_data = template.format(
-                flag           = flag,
                 ai_persona     = ai_persona,
                 user_persona   = data['persona'],
                 user_situation = data['situation']
@@ -52,29 +51,29 @@ def post_process(response):
     return response
 
 def check_dialog_turns(response):
-    pattern_A = r'\[A\]:|\<A\>:|A:|A：|\<A\>：'
-    matches_A = re.findall(pattern_A, response)
-    count_A = len(matches_A)
+    # pattern_A = r'\[A\]:|\<A\>:|A:|A：|\<A\>：'
+    # matches_A = re.findall(pattern_A, response)
+    # count_A = len(matches_A)
 
-    pattern_B = r'\[B\]:|\<B\>:\<B\>：|\<A\>：'
-    matches_B = re.findall(pattern_B, response)
-    count_B = len(matches_B)
+    # pattern_B = r'\[B\]:|\<B\>:\<B\>：|\<A\>：'
+    # matches_B = re.findall(pattern_B, response)
+    # count_B = len(matches_B)
 
-    if abs(count_A - count_B) >= 2:
-        return -1
+    # if abs(count_A - count_B) >= 2:
+    #     return -1
     
-    count = count_A + count_B
+    # count = count_A + count_B
 
-    return count
+    if "<Round 10>" in response:
+        return True
+    else:
+        return False
 
 def run(content):
     while True:
         response = get_azure_response(url, apikey, content=content, temperature=0.1)
-        
-        count = check_dialog_turns(response)
 
-        if count >= 8:
-            response = post_process(response)
+        if check_dialog_turns(response=response):
             break
         else:
             continue
@@ -95,6 +94,8 @@ if __name__ == '__main__':
 
     if 'zh' in result_path:
         flags = ["<A>", "<B>"]
+        flags = ["<B>"]
+        # 267
     else:
         flags = ["[A]", "[B]"]
 
