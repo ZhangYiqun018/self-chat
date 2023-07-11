@@ -7,7 +7,7 @@ import re
 from datasets import concatenate_datasets, load_dataset
 from tqdm.auto import tqdm
 
-from utils import get_azure_response
+from utils import get_azure_response, get_api2d_response
 
 def init_data(seeds_path: str, machine_path: str):
     machine_data = load_dataset(
@@ -29,53 +29,82 @@ def init_data(seeds_path: str, machine_path: str):
     fp = open(data_path, 'a')
 
     for data in tqdm(dataset):
-        for flag in flags:
-            template_data = template.format(
-                ai_persona     = ai_persona,
-                user_persona   = data['persona'],
-                user_situation = data['situation']
-            )
+        template_data = template.format(
+            ai_persona     = ai_persona,
+            user_persona   = data['persona'],
+            user_situation = data['situation']
+        )
 
-            templates.append(template_data)
+        templates.append(template_data)
 
-            temp = {
-                'template'      : template_data,
-                'ai_persona'    : ai_persona,
-                'user_persona'  : data['persona'],
-                'user_situation': data['situation']
-            }
+        temp = {
+            'template'      : template_data,
+            'ai_persona'    : ai_persona,
+            'user_persona'  : data['persona'],
+            'user_situation': data['situation']
+        }
 
-            fp.write(json.dumps(temp, ensure_ascii=False) + '\n')
+        fp.write(json.dumps(temp, ensure_ascii=False) + '\n')
 
-def post_process(response):
-    return response
+def post_process(conversation):
+    fp = open('train_psyqa.json', 'a')
+    history = []
+    for conv in conversation:
+        prompt = re.sub(r'^[^a-zA-Z\u4e00-\u9fff]+', '', conv[0])
+        reply = re.sub(r'^[^a-zA-Z\u4e00-\u9fff]+', '', conv[1])
+        if len(reply) == 0:
+            return False
+        if len(history) == 0 and (reply== history[-1][1] or prompt == history[-1][0]):
+            return False
+        data = {
+            'prompt'  : prompt,
+            'response': reply,
+            'history' : history
+        }
+        
+        fp.write(
+            json.dumps(data, ensure_ascii=False) + '\n'
+        )
 
-def check_dialog_turns(response):
-    # pattern_A = r'\[A\]:|\<A\>:|A:|A：|\<A\>：'
-    # matches_A = re.findall(pattern_A, response)
-    # count_A = len(matches_A)
-
-    # pattern_B = r'\[B\]:|\<B\>:\<B\>：|\<A\>：'
-    # matches_B = re.findall(pattern_B, response)
-    # count_B = len(matches_B)
-
-    # if abs(count_A - count_B) >= 2:
-    #     return -1
+        history.append([prompt, reply])
     
-    # count = count_A + count_B
+    return True
 
-    if "<Round 10>" in response:
-        return True
-    else:
+def check_dialog_turns(text):
+    if "<Round 10>" not in text:
         return False
+
+    pattern = r"<[AB]>(.+?)\n(?:<[AB]>(.+?)\n)*"
+    conversation = re.findall(pattern=pattern, string=text)
+    if len(conversation) < 10:
+        return False
+    
+    # return post_process(conversation)
+    return True
 
 def run(content):
     while True:
-        response = get_azure_response(url, apikey, content=content, temperature=0.1)
-
-        if check_dialog_turns(response=response):
+        if use_azure:
+            response = get_azure_response(
+                url if not use_16k else url16k, 
+                apikey if not use_16k else apikey16k, 
+                content           = content,
+                temperature       = 0.1,
+                _verbose          = False,
+                frequency_penalty = 0.6,
+                use_16k           = use_16k,
+            )
+        else:
+            response = get_api2d_response(
+                url,
+                apikey,
+                content  = content,
+                _verbose = False,
+            )
+        if check_dialog_turns(response):
             break
         else:
+            print(response)
             continue
 
     return response
@@ -83,29 +112,32 @@ def run(content):
 if __name__ == '__main__':
     config = configparser.ConfigParser()
     config.read('config.ini')
-    url    = config.get('AZURE', 'url')
-    apikey = config.get('AZURE', 'apikey')
+    use_azure = True
+    use_16k   = False
+    if use_azure:
+        print("Use AZURE")
+        url    = config.get('AZURE', 'url')
+        apikey = config.get('AZURE', 'apikey')
+        url16k    = config.get('AZURE', 'url16k')
+        apikey16k = config.get('AZURE', 'apikey16k')
+    else:
+        print("Use API2D")
+        url       = config.get('API2D', 'url')
+        apikey    = config.get('API2D', 'apikey')
+
 
     seeds_path    = 'mentalhealth_seeds_zh.json'
     machine_path  = 'machine_generate_mentalhealth_zh.json'
     template_path = os.path.join('templates', 'dialog_prompt.json')
-    data_path     = os.path.join('data', 'dialog_init_data_zh.json')
-    result_path   = os.path.join('data', 'machine_generate_dialog_zh.json')
-
-    if 'zh' in result_path:
-        flags = ["<A>", "<B>"]
-        flags = ["<B>"]
-        # 267
-    else:
-        flags = ["[A]", "[B]"]
+    data_path     = os.path.join('data', 'psyqa_data.json')
+    result_path   = os.path.join('data', 'machine_generate_dialog_psyqa.json')
 
     with open(template_path, 'r') as r:
         template_data = json.load(fp=r)
-        print(template_data)
+        print(template_data['prompt_zh'])
         template   = template_data['prompt_zh']
         ai_persona = template_data['ai_persona_zh']
 
-    
     if not os.path.exists(data_path):
         init_data(
             seeds_path   = seeds_path,
@@ -119,9 +151,10 @@ if __name__ == '__main__':
     )
     
     print(datas)
+    print(datas[0]['template'])
 
     fp = open(result_path, 'a')
-    with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
+    with concurrent.futures.ThreadPoolExecutor() as executor:
         futures = [
             executor.submit(
                 run,

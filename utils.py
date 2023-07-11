@@ -12,24 +12,35 @@ from rouge_score import rouge_scorer
 
 @tenacity.retry(
         wait=tenacity.wait_exponential(multiplier=1, min=4, max=200),
-        stop=tenacity.stop_after_attempt(10),
+        stop=tenacity.stop_after_attempt(3),
         reraise=True)
-def get_api2d_response(url: str, apikey: str, content: str):
+def get_api2d_response(
+    url: str, 
+    apikey: str, 
+    content: str,
+    _verbose: bool=False,
+    temperature: float=0.7,
+):
     headers = {
         'Authorization': f'Bearer {apikey}',
         'User-Agent': 'Apifox/1.0.0 (https://apifox.com)',
         'Content-Type': 'application/json'
     }
 
+    if _verbose:
+        print(content)
+
     payload = json.dumps({
-        "model": "gpt-3.5-turbo",
+        "model": "gpt-3.5-turbo-0613",
         "messages": [
             {
                 "role": "user",
                 "content": content,
             }
         ],
-        "safe_mode": False
+        "temperature": temperature,
+        "max_tokens" : 2000,
+        "safe_mode"  : False
     })
 
     response = requests.request("POST", url, headers=headers, data=payload)
@@ -37,12 +48,35 @@ def get_api2d_response(url: str, apikey: str, content: str):
     response = response['choices'][0]['message']['content']
 
     return response
-
 @tenacity.retry(
         wait=tenacity.wait_exponential(multiplier=1, min=4, max=200),
-        stop=tenacity.stop_after_attempt(2),
+        stop=tenacity.stop_after_attempt(3),
         reraise=True)
-def get_azure_response(url: str, apikey: str, content: str, _verbose: bool = False, temperature: float=0.7):
+def get_openai_response(
+    url              : str,
+    apikey           : str,
+    content          : str,
+    _verbose         : bool  = False,
+    temperature      : float = 0.7,
+    frequency_penalty: float = 0.0,
+    presence_penalty : float = 0.0,
+    use_16k          : bool  = False,
+):
+    
+@tenacity.retry(
+        wait=tenacity.wait_exponential(multiplier=1, min=4, max=200),
+        stop=tenacity.stop_after_attempt(3),
+        reraise=True)
+def get_azure_response(
+    url              : str,
+    apikey           : str,
+    content          : str,
+    _verbose         : bool  = False,
+    temperature      : float = 0.7,
+    frequency_penalty: float = 0.0,
+    presence_penalty : float = 0.0,
+    use_16k          : bool  = False,
+):
     openai.api_type    = "azure"
     openai.api_base    = url
     openai.api_version = "2023-03-15-preview"
@@ -51,13 +85,9 @@ def get_azure_response(url: str, apikey: str, content: str, _verbose: bool = Fal
     if _verbose:
         print(content)
 
-    # temperature_list = [0.0, 0.1, 0.2, 0.3]
-    # temperature = random.sample(temperature_list, k=1)[0]
-
-    # print(temperature)
     response = openai.ChatCompletion.create(
         # engine = "deployment_name"
-        engine = "gpt-35-turbo",
+        engine = "gpt-35-turbo" if not use_16k else "ChatGPT16k",
         messages = [
             {
                 "role"   : "system",
@@ -68,9 +98,11 @@ def get_azure_response(url: str, apikey: str, content: str, _verbose: bool = Fal
                 "content": content
             }
         ],
-        temperature = temperature,
-        max_tokens  = 1000,
-        top_p       = 0.95,
+        temperature       = temperature,
+        max_tokens        = 3000 if not use_16k else 10000,
+        top_p             = 0.95,
+        frequency_penalty = frequency_penalty,
+        presence_penalty  = presence_penalty,
     )
 
     response = response['choices'][0]['message']['content']
