@@ -48,6 +48,8 @@ def get_api2d_response(
     response = response['choices'][0]['message']['content']
 
     return response
+
+
 @tenacity.retry(
         wait=tenacity.wait_exponential(multiplier=1, min=4, max=200),
         stop=tenacity.stop_after_attempt(3),
@@ -62,7 +64,36 @@ def get_openai_response(
     presence_penalty : float = 0.0,
     use_16k          : bool  = False,
 ):
-    
+    openai.api_type = "openai"
+    openai.api_base = url
+    openai.api_key = apikey
+
+    if _verbose:
+        print(content)
+
+    response = openai.ChatCompletion.create(
+        # engine = "deployment_name"
+        model = "gpt-3.5-turbo" if not use_16k else "ChatGPT16k",
+        messages = [
+            {
+                "role"   : "system",
+                "content": "You are an AI assistant that helps people find information."
+            },
+            {
+                "role"   : "user",
+                "content": content
+            }
+        ],
+        temperature       = temperature,
+        max_tokens        = 3000 if not use_16k else 10000,
+        top_p             = 0.95,
+        frequency_penalty = frequency_penalty,
+        presence_penalty  = presence_penalty,
+    )
+    response = response['choices'][0]['message']['content']
+
+    return response
+
 @tenacity.retry(
         wait=tenacity.wait_exponential(multiplier=1, min=4, max=200),
         stop=tenacity.stop_after_attempt(3),

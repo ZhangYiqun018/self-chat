@@ -7,7 +7,8 @@ import re
 from datasets import concatenate_datasets, load_dataset
 from tqdm.auto import tqdm
 
-from utils import get_azure_response, get_api2d_response
+from utils import get_api2d_response, get_azure_response, get_openai_response
+
 
 def init_data(seeds_path: str, machine_path: str):
     machine_data = load_dataset(
@@ -84,7 +85,7 @@ def check_dialog_turns(text):
 
 def run(content):
     while True:
-        if use_azure:
+        if api_style == 'azure':
             response = get_azure_response(
                 url if not use_16k else url16k, 
                 apikey if not use_16k else apikey16k, 
@@ -94,12 +95,22 @@ def run(content):
                 frequency_penalty = 0.6,
                 use_16k           = use_16k,
             )
-        else:
+        elif api_style == 'api2d':
             response = get_api2d_response(
                 url,
                 apikey,
                 content  = content,
                 _verbose = False,
+            )
+        elif api_style == 'openai':
+            response = get_openai_response(
+                url, 
+                apikey,
+                content           = content,
+                temperature       = 0.1,
+                _verbose          = False,
+                frequency_penalty = 0.6,
+                use_16k           = use_16k,
             )
         if check_dialog_turns(response):
             break
@@ -112,23 +123,27 @@ def run(content):
 if __name__ == '__main__':
     config = configparser.ConfigParser()
     config.read('config.ini')
-    use_azure = True
+    api_style = 'azure'
     use_16k   = False
-    if use_azure:
+    if api_style == 'azure':
         print("Use AZURE")
         url    = config.get('AZURE', 'url')
         apikey = config.get('AZURE', 'apikey')
         url16k    = config.get('AZURE', 'url16k')
         apikey16k = config.get('AZURE', 'apikey16k')
-    else:
+    elif api_style == 'api2d':
         print("Use API2D")
         url       = config.get('API2D', 'url')
         apikey    = config.get('API2D', 'apikey')
-
+    elif api_style == 'openai':
+        print("Use OPENAI")
+        url       = config.get('OPENAI', 'url')
+        apikey    = config.get('OPENAI', 'apikey')
 
     seeds_path    = 'mentalhealth_seeds_zh.json'
     machine_path  = 'machine_generate_mentalhealth_zh.json'
     template_path = os.path.join('templates', 'dialog_prompt.json')
+    
     data_path     = os.path.join('data', 'psyqa_data.json')
     result_path   = os.path.join('data', 'machine_generate_dialog_psyqa.json')
 
