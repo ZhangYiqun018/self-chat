@@ -62,7 +62,8 @@ def get_openai_response(
     presence_penalty : float = 0.0,
     use_16k          : bool  = False,
 ):
-    
+    pass
+
 @tenacity.retry(
         wait=tenacity.wait_exponential(multiplier=1, min=4, max=200),
         stop=tenacity.stop_after_attempt(3),
@@ -125,14 +126,6 @@ def save_results(results, filename: str):
     for result in results:
         fp.write(json.dumps(result) + '\n')
 
-def check_dialog_turns(response):
-    import re
-    pattern = r'\[A\]:|\[B\]:'
-    matches = re.findall(pattern, response)
-    count = len(matches)
-
-    return count >= 10
-
 
 if __name__ == '__main__':
     response = """
@@ -158,5 +151,3 @@ if __name__ == '__main__':
 
 [A]: You're welcome, [B]. I'm here for you whenever you need to talk or if you have any other questions. Remember, you are not alone in this journey, and there are resources and support available to help you manage your anxiety.
 """
-
-    print(check_dialog_turns(response=response))
