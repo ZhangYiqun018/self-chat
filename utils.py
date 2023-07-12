@@ -102,7 +102,7 @@ def get_azure_response(
             }
         ],
         temperature       = temperature,
-        max_tokens        = 3000 if not use_16k else 10000,
+        max_tokens        = 2000 if not use_16k else 10000,
         top_p             = 0.95,
         frequency_penalty = frequency_penalty,
         presence_penalty  = presence_penalty,

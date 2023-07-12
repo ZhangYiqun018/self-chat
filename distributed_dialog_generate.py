@@ -12,8 +12,8 @@ from tqdm.auto import tqdm
 from utils import get_openai_response
 
 def check_dialog_turns(text):
-    if "<Round 10>" not in text:
-        return False
+    # if "<Round 10>" not in text:
+    #     return False
 
     pattern = r"<[AB]>(.+?)\n(?:<[AB]>(.+?)\n)*"
     conversation = re.findall(pattern=pattern, string=text)
@@ -24,9 +24,8 @@ def check_dialog_turns(text):
     return True
 
 def run(content):
-    count = 0
     while True:
-        count += 1
+        # print(content)
         response = get_openai_response(
             url,
             apikey,
@@ -37,7 +36,6 @@ def run(content):
             use_16k           = False,
         )
 
-        print(response)
         if check_dialog_turns(response):
             break
         else:
@@ -48,17 +46,17 @@ def run(content):
 config = configparser.ConfigParser()
 config.read('config.ini')
 
-url    = config.get('OPENAI', 'url')
-apikey = config.get('OPENAI', 'apikey')
+url    = config.get('AZURE', 'url')
+apikey = config.get('AZURE', 'apikey')
 
-url = "http://107.148.42.172:8000/v1"
-apikey = "fk-zhangyiqun"
+# url = "http://107.148.42.172:8000/v1"
+# apikey = "fk-zhangyiqun"
 
 for id in range(0, 2, 1):
-    filename = f'psyqa_data_{str(id)}'
-
-    data_path = os.path.join('psyqa', 'split', f'{filename}.json')
-    result_path = os.path.join('psyqa', 'output', f'machine_{filename}.json')
+    # filename = f'psyqa_data_{str(id)}'
+    filename = 'mechine_generate_dialog_init'
+    data_path = os.path.join('data', f'{filename}.json')
+    result_path = os.path.join('psyqa', 'output', f'dialog_en.json')
 
     datas = load_dataset(
         'json',
@@ -69,7 +67,7 @@ for id in range(0, 2, 1):
     print(datas)
 
     fp = open(result_path, 'a', encoding='utf-8')
-    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=16) as executor:
         futures = [
             executor.submit(
                 run,
@@ -80,7 +78,7 @@ for id in range(0, 2, 1):
         with tqdm(total=len(futures)) as pbar:
             for future, data in zip(concurrent.futures.as_completed(futures), datas):
                 try:
-                    data['response'] = future.result()
+                    data["response"] = future.result()
                     fp.write(json.dumps(data, ensure_ascii=False) + '\n') 
                     pbar.update(1)
                 except Exception as e:

@@ -27,7 +27,7 @@ def init_data(seeds_path: str, machine_path: str):
 
     templates = []
 
-    fp = open(data_path, 'a')
+    fp = open(data_path, encoding='utf-8', mode='a')
 
     for data in tqdm(dataset):
         template_data = template.format(
@@ -72,8 +72,8 @@ def post_process(conversation):
     return True
 
 def check_dialog_turns(text):
-    if "<Round 10>" not in text:
-        return False
+    # if "<Round 10>" not in text:
+    #     return False
 
     pattern = r"<[AB]>(.+?)\n(?:<[AB]>(.+?)\n)*"
     conversation = re.findall(pattern=pattern, string=text)
@@ -123,7 +123,7 @@ def run(content):
 if __name__ == '__main__':
     config = configparser.ConfigParser()
     config.read('config.ini')
-    api_style = 'azure'
+    api_style = 'openai'
     use_16k   = False
     if api_style == 'azure':
         print("Use AZURE")
@@ -146,11 +146,11 @@ if __name__ == '__main__':
     data_path     = os.path.join('data', 'mechine_generate_dialog_init.json')
     result_path   = os.path.join('data', 'mechine_generate_dialog.json')
 
-    with open(template_path, 'r') as r:
+    with open(template_path, encoding='utf-8', mode='r') as r:
         template_data = json.load(fp=r)
-        print(template_data['prompt_zh'])
-        template   = template_data['prompt_zh']
-        ai_persona = template_data['ai_persona_zh']
+        print(template_data['prompt_en'])
+        template   = template_data['prompt_en']
+        ai_persona = template_data['ai_persona_en']
 
     if not os.path.exists(data_path):
         init_data(
@@ -165,9 +165,9 @@ if __name__ == '__main__':
     )
     
     print(datas)
-    print(datas[0]['template'])
+    # print(datas[0]['template'])
 
-    fp = open(result_path, 'a')
+    fp = open(result_path, mode='a', encoding='utf-8')
     with concurrent.futures.ThreadPoolExecutor() as executor:
         futures = [
             executor.submit(
@@ -179,8 +179,8 @@ if __name__ == '__main__':
         with tqdm(total=len(futures)) as pbar:
             for future, data in zip(concurrent.futures.as_completed(futures), datas):
                 try:
-                    data['response'] = future.result()
-                    fp.write(json.dumps(data, ensure_ascii=False) + '\n') 
+                    data["response"] = future.result()
+                    fp.write(json.dumps(dict(data), ensure_ascii=False) + '\n') 
                     pbar.update(1)
                 except Exception as e:
                     print(e)
