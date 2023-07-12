@@ -36,6 +36,8 @@ def run(content):
             frequency_penalty = 0.6,
             use_16k           = False,
         )
+
+        print(response)
         if check_dialog_turns(response):
             break
         else:
@@ -48,9 +50,11 @@ config.read('config.ini')
 
 url    = config.get('OPENAI', 'url')
 apikey = config.get('OPENAI', 'apikey')
-apikeys = config.get('OPENAI', 'apikeys')
 
-for id in range(32, 45, 1):
+url = "http://107.148.42.172:8000/v1"
+apikey = "fk-zhangyiqun"
+
+for id in range(0, 2, 1):
     filename = f'psyqa_data_{str(id)}'
 
     data_path = os.path.join('psyqa', 'split', f'{filename}.json')
@@ -65,7 +69,7 @@ for id in range(32, 45, 1):
     print(datas)
 
     fp = open(result_path, 'a', encoding='utf-8')
-    with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
         futures = [
             executor.submit(
                 run,
