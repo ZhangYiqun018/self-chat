@@ -140,12 +140,11 @@ if __name__ == '__main__':
         url       = config.get('OPENAI', 'url')
         apikey    = config.get('OPENAI', 'apikey')
 
-    seeds_path    = 'mentalhealth_seeds_zh.json'
-    machine_path  = 'machine_generate_mentalhealth_zh.json'
+    seeds_path    = 'data_seeds.json'
+    machine_path  = 'machine_generate.json'
     template_path = os.path.join('templates', 'dialog_prompt.json')
-    
-    data_path     = os.path.join('data', 'psyqa_data.json')
-    result_path   = os.path.join('data', 'machine_generate_dialog_psyqa.json')
+    data_path     = os.path.join('data', 'mechine_generate_dialog_init.json')
+    result_path   = os.path.join('data', 'mechine_generate_dialog.json')
 
     with open(template_path, 'r') as r:
         template_data = json.load(fp=r)
