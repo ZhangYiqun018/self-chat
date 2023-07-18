@@ -49,9 +49,6 @@ config.read('config.ini')
 url    = config.get('AZURE', 'url')
 apikey = config.get('AZURE', 'apikey')
 
-# url = "http://107.148.42.172:8000/v1"
-# apikey = "fk-zhangyiqun"
-
 for id in range(0, 2, 1):
     # filename = f'psyqa_data_{str(id)}'
     filename = 'mechine_generate_dialog_init'
